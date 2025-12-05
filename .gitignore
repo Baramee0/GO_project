@@ -1,0 +1,34 @@
+# Environment variables
+.env
+backend/.env
+backend/.cursorrules
+frontend/.env.local
+frontend/.env
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
