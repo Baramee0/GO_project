@@ -34,10 +34,13 @@ func main() {
 	// Create repositories
 	userRepo := repository.NewUserRepository(db)
 	taskRepo := repository.NewTaskRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(userRepo)
 	taskHandler := handlers.NewTaskHandler(taskRepo)
+	projectHandler := handlers.NewProjectHandler(projectRepo, userRepo)
+	adminHandler := handlers.NewAdminHandler(userRepo)
 
 	// Create router
 	r := mux.NewRouter()
@@ -53,12 +56,31 @@ func main() {
 	// Protected routes (authentication required)
 	protected := api.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
+
+	// Auth routes
 	protected.HandleFunc("/auth/me", authHandler.GetMe).Methods("GET")
+
+	// Project routes
+	protected.HandleFunc("/projects", projectHandler.GetProjects).Methods("GET")
+	protected.HandleFunc("/projects", projectHandler.CreateProject).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/projects/{id}", projectHandler.GetProject).Methods("GET")
+	protected.HandleFunc("/projects/{id}", projectHandler.UpdateProject).Methods("PUT", "OPTIONS")
+	protected.HandleFunc("/projects/{id}", projectHandler.DeleteProject).Methods("DELETE", "OPTIONS")
+	protected.HandleFunc("/projects/{id}/members", projectHandler.GetMembers).Methods("GET")
+	protected.HandleFunc("/projects/{id}/invite", projectHandler.InviteMember).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/projects/{id}/members/{userId}", projectHandler.UpdateMemberRole).Methods("PUT", "OPTIONS")
+	protected.HandleFunc("/projects/{id}/members/{userId}", projectHandler.RemoveMember).Methods("DELETE", "OPTIONS")
+
+	// Task routes
 	protected.HandleFunc("/tasks", taskHandler.GetTasks).Methods("GET")
 	protected.HandleFunc("/tasks", taskHandler.CreateTask).Methods("POST", "OPTIONS")
 	protected.HandleFunc("/tasks/{id}", taskHandler.GetTask).Methods("GET")
 	protected.HandleFunc("/tasks/{id}", taskHandler.UpdateTask).Methods("PUT", "OPTIONS")
 	protected.HandleFunc("/tasks/{id}", taskHandler.DeleteTask).Methods("DELETE", "OPTIONS")
+
+	// Admin routes
+	protected.HandleFunc("/admin/users", adminHandler.GetAllUsers).Methods("GET", "OPTIONS")
+	protected.HandleFunc("/admin/users/{id}", adminHandler.DeleteUser).Methods("DELETE", "OPTIONS")
 
 	// Apply CORS middleware to all routes
 	r.Use(middleware.CORSMiddleware)

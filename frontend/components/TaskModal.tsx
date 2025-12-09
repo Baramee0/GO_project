@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskPriority } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
+import { useProject } from '@/contexts/ProjectContext';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
     const [dueDate, setDueDate] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const toast = useToast();
+    const { currentProject } = useProject();
 
     useEffect(() => {
         if (task && mode === 'edit') {
@@ -49,18 +51,40 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             return;
         }
 
+        if (mode === 'create' && !currentProject) {
+            toast.error('Please select a project first');
+            return;
+        }
+
+        if (mode === 'create' && !currentProject?.id) {
+            toast.error('Invalid project selected');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            const taskData: CreateTaskRequest | UpdateTaskRequest = {
-                title: title.trim(),
-                description: description.trim(),
-                status,
-                priority,
-                due_date: dueDate || null,
-            };
+            if (mode === 'create') {
+                const taskData: CreateTaskRequest = {
+                    project_id: currentProject!.id,
+                    title: title.trim(),
+                    description: description.trim(),
+                    status,
+                    priority,
+                    due_date: dueDate || null,
+                };
+                await onSave(taskData);
+            } else {
+                const taskData: UpdateTaskRequest = {
+                    title: title.trim(),
+                    description: description.trim(),
+                    status,
+                    priority,
+                    due_date: dueDate || null,
+                };
+                await onSave(taskData);
+            }
 
-            await onSave(taskData);
             toast.success(mode === 'create' ? 'Task created successfully!' : 'Task updated successfully!');
             onClose();
         } catch (err: any) {

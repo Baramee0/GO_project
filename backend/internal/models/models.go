@@ -8,12 +8,32 @@ type User struct {
 	Email        string    `json:"email" db:"email"`
 	PasswordHash string    `json:"-" db:"password_hash"`
 	Name         string    `json:"name" db:"name"`
+	SystemRole   string    `json:"system_role" db:"system_role"` // 'admin' or 'user'
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+}
+
+//Project model
+type Project struct {
+	ID          string     `json:"id" db:"id"`
+	Name        string     `json:"name" db:"name"`
+	Description string     `json:"description" db:"description"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at" db:"updated_at"`
+}
+
+//ProjectMember model
+type ProjectMember struct {
+	ID        string    `json:"id" db:"id"`
+	ProjectID string    `json:"project_id" db:"project_id"`
+	UserID    string    `json:"user_id" db:"user_id"`
+	Role      string    `json:"role" db:"role"` // 'PO', 'PM', 'Member', 'Viewer'
+	JoinedAt  time.Time `json:"joined_at" db:"joined_at"`
 }
 
 //Task model
 type Task struct {
 	ID          string     `json:"id" db:"id"`
+	ProjectID   string     `json:"project_id" db:"project_id"`
 	UserID      string     `json:"user_id" db:"user_id"`
 	Title       string     `json:"title" db:"title"`
 	Description string     `json:"description" db:"description"`
@@ -37,6 +57,7 @@ type LoginRequest struct {
 }
 
 type CreateTaskRequest struct {
+	ProjectID   string  `json:"project_id"`
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Status      string  `json:"status"`
@@ -50,6 +71,25 @@ type UpdateTaskRequest struct {
 	Status      string  `json:"status"`
 	Priority    string  `json:"priority"`
 	DueDate     *string `json:"due_date"`
+}
+
+type CreateProjectRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type UpdateProjectRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type InviteMemberRequest struct {
+	Email string `json:"email"`
+	Role  string `json:"role"` // 'PM', 'Member', 'Viewer'
+}
+
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role"`
 }
 
 type ErrorResponse struct {

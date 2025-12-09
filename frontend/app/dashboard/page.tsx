@@ -5,10 +5,12 @@ import Sidebar from '@/components/Sidebar';
 import TaskCard from '@/components/TaskCard';
 import TaskModal from '@/components/TaskModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EmptyProjectState from '@/components/EmptyProjectState';
 import Button from '@/components/ui/Button';
 import api from '@/lib/api';
 import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
+import { useProject } from '@/contexts/ProjectContext';
 
 export default function DashboardPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -22,6 +24,7 @@ export default function DashboardPage() {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
     const toast = useToast();
+    const { currentProject } = useProject();
 
     // Fetch tasks
     const fetchTasks = async () => {
@@ -41,28 +44,50 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        fetchTasks();
-    }, []);
-
-    // Filter tasks based on active tab
-    useEffect(() => {
-        if (activeTab === 'all') {
-            setFilteredTasks(tasks);
-        } else {
-            setFilteredTasks(tasks?.filter((task) => task.status === activeTab));
+        if (currentProject) {
+            fetchTasks();
         }
-    }, [tasks, activeTab]);
+    }, [currentProject]);
+
+    // Filter tasks based on active tab and current project
+    useEffect(() => {
+        if (!currentProject) {
+            setFilteredTasks([]);
+            return;
+        }
+
+        // Filter by project first
+        const projectTasks = tasks?.filter(task => task.project_id === currentProject.id);
+
+        // Then filter by status
+        if (activeTab === 'all') {
+            setFilteredTasks(projectTasks);
+        } else {
+            setFilteredTasks(projectTasks?.filter((task) => task.status === activeTab));
+        }
+    }, [tasks, activeTab, currentProject]);
 
     // Create task
-    const handleCreateTask = async (taskData: CreateTaskRequest) => {
-        await api.post('/tasks', taskData);
-        await fetchTasks();
+    const handleCreateTask = async (taskData: CreateTaskRequest | UpdateTaskRequest) => {
+        // Type guard: CreateTaskRequest has project_id
+        if ('project_id' in taskData) {
+            await api.post('/tasks', taskData);
+            await fetchTasks();
+        }
     };
 
     // Update task
-    const handleUpdateTask = async (taskData: UpdateTaskRequest) => {
+    const handleUpdateTask = async (taskData: CreateTaskRequest | UpdateTaskRequest) => {
         if (selectedTask) {
-            await api.put(`/tasks/${selectedTask.id}`, taskData);
+            // For update, we only need UpdateTaskRequest fields
+            const updateData: UpdateTaskRequest = {
+                title: taskData.title,
+                description: taskData.description,
+                status: taskData.status,
+                priority: taskData.priority,
+                due_date: taskData.due_date,
+            };
+            await api.put(`/tasks/${selectedTask.id}`, updateData);
             await fetchTasks();
         }
     };
@@ -149,6 +174,7 @@ export default function DashboardPage() {
                             variant="primary"
                             size="lg"
                             onClick={openCreateModal}
+                            disabled={!currentProject}
                             icon={
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -224,6 +250,9 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-center py-20">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
                         </div>
+                    ) : !currentProject ? (
+                        /* No Project Selected - Show Empty State */
+                        <EmptyProjectState />
                     ) : filteredTasks?.length === 0 ? (
                         /* Empty State */
                         <div className="text-center py-20">

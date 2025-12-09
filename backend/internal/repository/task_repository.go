@@ -31,13 +31,14 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 
 	// Insert into database
 	query := `
-		INSERT INTO tasks (id, user_id, title, description, status, priority, due_date, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO tasks (id, project_id, user_id, title, description, status, priority, due_date, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.Exec(
 		query,
 		task.ID,
+		task.ProjectID,
 		task.UserID,
 		task.Title,
 		task.Description,
@@ -58,7 +59,7 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 // GetTasksByUserID retrieves all tasks for a user
 func (r *TaskRepository) GetTasksByUserID(userID string) ([]*models.Task, error) {
 	query := `
-		SELECT id, user_id, title, description, status, priority, due_date, created_at, updated_at
+		SELECT id, project_id, user_id, title, description, status, priority, due_date, created_at, updated_at
 		FROM tasks
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -75,9 +76,11 @@ func (r *TaskRepository) GetTasksByUserID(userID string) ([]*models.Task, error)
 		task := &models.Task{}
 		var updatedAt sql.NullTime
 		var dueDate sql.NullTime
+		var projectID sql.NullString
 
 		err := rows.Scan(
 			&task.ID,
+			&projectID,
 			&task.UserID,
 			&task.Title,
 			&task.Description,
@@ -93,6 +96,9 @@ func (r *TaskRepository) GetTasksByUserID(userID string) ([]*models.Task, error)
 		}
 
 		// Handle nullable fields
+		if projectID.Valid {
+			task.ProjectID = projectID.String
+		}
 		if updatedAt.Valid {
 			task.UpdatedAt = &updatedAt.Time
 		}
@@ -115,15 +121,17 @@ func (r *TaskRepository) GetTaskByID(id string) (*models.Task, error) {
 	task := &models.Task{}
 	var updatedAt sql.NullTime
 	var dueDate sql.NullTime
+	var projectID sql.NullString
 
 	query := `
-		SELECT id, user_id, title, description, status, priority, due_date, created_at, updated_at
+		SELECT id, project_id, user_id, title, description, status, priority, due_date, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRow(query, id).Scan(
 		&task.ID,
+		&projectID,
 		&task.UserID,
 		&task.Title,
 		&task.Description,
@@ -142,6 +150,9 @@ func (r *TaskRepository) GetTaskByID(id string) (*models.Task, error) {
 	}
 
 	// Handle nullable fields
+	if projectID.Valid {
+		task.ProjectID = projectID.String
+	}
 	if updatedAt.Valid {
 		task.UpdatedAt = &updatedAt.Time
 	}
@@ -211,4 +222,3 @@ func (r *TaskRepository) DeleteTask(id, userID string) error {
 
 	return nil
 }
-
