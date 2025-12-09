@@ -119,13 +119,23 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req models.CreateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[TASK] Failed to decode request body: %v", err)
 		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
+	log.Printf("[TASK] Received request: ProjectID=%s, Title=%s", req.ProjectID, req.Title)
+
 	// Validate input
 	if req.Title == "" {
+		log.Printf("[TASK] Create task validation failed for user %s: title is empty", userID)
 		respondWithError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+
+	if req.ProjectID == "" {
+		log.Printf("[TASK] Create task validation failed for user %s: project_id is empty", userID)
+		respondWithError(w, http.StatusBadRequest, "Project ID is required")
 		return
 	}
 
@@ -137,8 +147,11 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		req.Priority = "medium"
 	}
 
+	log.Printf("[TASK] Creating task for user %s in project %s: %s", userID, req.ProjectID, req.Title)
+
 	// Create task
 	task := &models.Task{
+		ProjectID:   req.ProjectID,
 		UserID:      userID,
 		Title:       req.Title,
 		Description: req.Description,
@@ -151,6 +164,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	if req.DueDate != nil && *req.DueDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *req.DueDate)
 		if err != nil {
+			log.Printf("[TASK] Invalid due date format for user %s: %s (error: %v)", userID, *req.DueDate, err)
 			respondWithError(w, http.StatusBadRequest, "Invalid due_date format. Use YYYY-MM-DD")
 			return
 		}
@@ -158,7 +172,9 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.taskRepo.CreateTask(task); err != nil {
-		log.Printf("Error creating task for user %s: %v", userID, err)
+		log.Printf("[TASK] Error creating task for user %s: %v", userID, err)
+		log.Printf("[TASK] Task details - ProjectID: %s, Title: %s, Status: %s, Priority: %s",
+			task.ProjectID, task.Title, task.Status, task.Priority)
 		statusCode, errorMsg := handleDatabaseError(err)
 		if isDevelopment() {
 			respondWithError(w, statusCode, fmt.Sprintf("%s: %v", errorMsg, err))
@@ -168,6 +184,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("[TASK] Successfully created task %s for user %s", task.ID, userID)
 	respondWithJSON(w, http.StatusCreated, task)
 }
 

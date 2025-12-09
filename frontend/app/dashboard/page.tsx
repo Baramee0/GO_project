@@ -69,10 +69,16 @@ export default function DashboardPage() {
 
     // Create task
     const handleCreateTask = async (taskData: CreateTaskRequest | UpdateTaskRequest) => {
+        console.log('[Dashboard] handleCreateTask called with:', taskData);
+        console.log('[Dashboard] Current project:', currentProject);
+
         // Type guard: CreateTaskRequest has project_id
         if ('project_id' in taskData) {
+            console.log('[Dashboard] Sending task to API:', taskData);
             await api.post('/tasks', taskData);
             await fetchTasks();
+        } else {
+            console.error('[Dashboard] No project_id in taskData!');
         }
     };
 

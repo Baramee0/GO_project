@@ -51,6 +51,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             return;
         }
 
+        console.log('[TaskModal] Current project:', currentProject);
+        console.log('[TaskModal] Mode:', mode);
+
         if (mode === 'create' && !currentProject) {
             toast.error('Please select a project first');
             return;
@@ -73,6 +76,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
                     priority,
                     due_date: dueDate || null,
                 };
+                console.log('[TaskModal] Creating task with data:', taskData);
                 await onSave(taskData);
             } else {
                 const taskData: UpdateTaskRequest = {
@@ -82,12 +86,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
                     priority,
                     due_date: dueDate || null,
                 };
+                console.log('[TaskModal] Updating task with data:', taskData);
                 await onSave(taskData);
             }
 
             toast.success(mode === 'create' ? 'Task created successfully!' : 'Task updated successfully!');
             onClose();
         } catch (err: any) {
+            console.error('[TaskModal] Error saving task:', err);
             toast.error(err.message || 'Failed to save task');
         } finally {
             setIsLoading(false);
