@@ -144,8 +144,17 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 		Status:      req.Status,
 		Priority:    req.Priority,
-		DueDate:     req.DueDate,
 		CreatedAt:   time.Now(),
+	}
+
+	// Parse due_date if provided
+	if req.DueDate != nil && *req.DueDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *req.DueDate)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid due_date format. Use YYYY-MM-DD")
+			return
+		}
+		task.DueDate = &parsedDate
 	}
 
 	if err := h.taskRepo.CreateTask(task); err != nil {
@@ -222,9 +231,18 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 		Status:      req.Status,
 		Priority:    req.Priority,
-		DueDate:     req.DueDate,
 		CreatedAt:   existingTask.CreatedAt,
 		UpdatedAt:   &time.Time{},
+	}
+
+	// Parse due_date if provided
+	if req.DueDate != nil && *req.DueDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *req.DueDate)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid due_date format. Use YYYY-MM-DD")
+			return
+		}
+		task.DueDate = &parsedDate
 	}
 
 	if err := h.taskRepo.UpdateTask(task); err != nil {
