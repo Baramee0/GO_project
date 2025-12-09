@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskPriority } from '@/types';
+import { useToast } from '@/contexts/ToastContext';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -21,7 +22,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
     const [priority, setPriority] = useState<TaskPriority>('medium');
     const [dueDate, setDueDate] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const toast = useToast();
 
     useEffect(() => {
         if (task && mode === 'edit') {
@@ -38,15 +39,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             setPriority('medium');
             setDueDate('');
         }
-        setError('');
     }, [task, mode, isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
 
         if (!title.trim()) {
-            setError('Title is required');
+            toast.error('Title is required');
             return;
         }
 
@@ -62,9 +61,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             };
 
             await onSave(taskData);
+            toast.success(mode === 'create' ? 'Task created successfully!' : 'Task updated successfully!');
             onClose();
         } catch (err: any) {
-            setError(err.message || 'Failed to save task');
+            toast.error(err.message || 'Failed to save task');
         } finally {
             setIsLoading(false);
         }
@@ -73,12 +73,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={mode === 'create' ? 'Create New Task' : 'Edit Task'}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                    <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                        {error}
-                    </div>
-                )}
-
                 <Input
                     type="text"
                     label="Title"

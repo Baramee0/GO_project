@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TaskCard from '@/components/TaskCard';
 import TaskModal from '@/components/TaskModal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Button from '@/components/ui/Button';
 import api from '@/lib/api';
 import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus } from '@/types';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function DashboardPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -17,6 +19,9 @@ export default function DashboardPage() {
     const [selectedTask, setSelectedTask] = useState<Task | undefined>();
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+    const toast = useToast();
 
     // Fetch tasks
     const fetchTasks = async () => {
@@ -26,7 +31,9 @@ export default function DashboardPage() {
             setTasks(response.data);
             setError('');
         } catch (err: any) {
-            setError('Failed to load tasks');
+            const errorMsg = 'Failed to load tasks';
+            setError(errorMsg);
+            toast.error(errorMsg);
             console.error('Error fetching tasks:', err);
         } finally {
             setIsLoading(false);
@@ -60,14 +67,24 @@ export default function DashboardPage() {
         }
     };
 
-    // Delete task
-    const handleDeleteTask = async (taskId: string) => {
-        if (confirm('Are you sure you want to delete this task?')) {
+    // Delete task - show confirmation
+    const handleDeleteTask = (taskId: string) => {
+        setTaskToDelete(taskId);
+        setIsConfirmOpen(true);
+    };
+
+    // Confirm delete
+    const confirmDelete = async () => {
+        if (taskToDelete) {
             try {
-                await api.delete(`/tasks/${taskId}`);
+                await api.delete(`/tasks/${taskToDelete}`);
+                toast.success('Task deleted successfully!');
                 await fetchTasks();
             } catch (err) {
+                toast.error('Failed to delete task');
                 console.error('Error deleting task:', err);
+            } finally {
+                setTaskToDelete(null);
             }
         }
     };
@@ -81,9 +98,11 @@ export default function DashboardPage() {
                     ...task,
                     status,
                 });
+                toast.success('Task status updated!');
                 await fetchTasks();
             }
         } catch (err) {
+            toast.error('Failed to update task status');
             console.error('Error updating task status:', err);
         }
     };
@@ -247,6 +266,18 @@ export default function DashboardPage() {
                 onSave={modalMode === 'create' ? handleCreateTask : handleUpdateTask}
                 task={selectedTask}
                 mode={modalMode}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Task"
+                message="Are you sure you want to delete this task? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
             />
         </div>
     );

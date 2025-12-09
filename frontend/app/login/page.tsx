@@ -38,7 +38,7 @@ export default function LoginPage() {
 
                 {/* Login Card */}
                 <div className="glass-card p-8">
-                    <h2 className="text-3xl font-bold text-white mb-6">Welcome Back</h2>
+                    <h2 className="text-3xl font-bold text-white mb-6 text-center">Welcome Back</h2>
 
                     {error && (
                         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm animate-slide-down">
