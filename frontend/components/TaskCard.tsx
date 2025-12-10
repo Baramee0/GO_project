@@ -3,6 +3,7 @@
 import React from 'react';
 import { Task, TaskStatus } from '@/types';
 import { format } from 'date-fns';
+import Avatar from '@/components/ui/Avatar';
 
 interface TaskCardProps {
     task: Task;
@@ -34,7 +35,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         <div className="glass-card p-6 hover-glow group animate-fade-in transition-all duration-300">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
-                <h3 className="text-2xl font-bold text-white flex-1 pr-4 leading-tight">{task.title}</h3>
+                <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-white pr-4 leading-tight">{task.title}</h3>
+                    {/* Assignee Avatar */}
+                    {task.assigned_to && task.assignee_name && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <Avatar
+                                name={task.assignee_name}
+                                email={task.assignee_email || undefined}
+                                size="sm"
+                            />
+                            <span className="text-sm text-gray-400">{task.assignee_name}</span>
+                        </div>
+                    )}
+                </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => onEdit(task)}

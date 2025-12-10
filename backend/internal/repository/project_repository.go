@@ -154,9 +154,15 @@ func (r *ProjectRepository) GetMemberRole(projectID, userID string) (string, err
 	return role, nil
 }
 
-// GetProjectMembers retrieves all members of a project
+// GetProjectMembers retrieves all members of a project with user info
 func (r *ProjectRepository) GetProjectMembers(projectID string) ([]*models.ProjectMember, error) {
-	query := `SELECT id, project_id, user_id, role, joined_at FROM project_members WHERE project_id = $1`
+	query := `
+		SELECT pm.id, pm.project_id, pm.user_id, pm.role, pm.joined_at, u.name, u.email
+		FROM project_members pm
+		INNER JOIN users u ON pm.user_id = u.id
+		WHERE pm.project_id = $1
+		ORDER BY pm.joined_at ASC
+	`
 	rows, err := r.db.Query(query, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project members: %w", err)
@@ -172,6 +178,8 @@ func (r *ProjectRepository) GetProjectMembers(projectID string) ([]*models.Proje
 			&member.UserID,
 			&member.Role,
 			&member.JoinedAt,
+			&member.UserName,
+			&member.UserEmail,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan member: %w", err)

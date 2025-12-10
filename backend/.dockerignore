@@ -1,0 +1,27 @@
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Build artifacts
+server
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

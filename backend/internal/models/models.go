@@ -26,22 +26,27 @@ type ProjectMember struct {
 	ID        string    `json:"id" db:"id"`
 	ProjectID string    `json:"project_id" db:"project_id"`
 	UserID    string    `json:"user_id" db:"user_id"`
-	Role      string    `json:"role" db:"role"` // 'PO', 'PM', 'Member', 'Viewer'
+	UserName  string    `json:"user_name" db:"user_name"`
+	UserEmail string    `json:"user_email" db:"user_email"`
+	Role      string    `json:"role" db:"role"` // 'po', 'pm', 'member', 'viewer'
 	JoinedAt  time.Time `json:"joined_at" db:"joined_at"`
 }
 
 //Task model
 type Task struct {
-	ID          string     `json:"id" db:"id"`
-	ProjectID   string     `json:"project_id" db:"project_id"`
-	UserID      string     `json:"user_id" db:"user_id"`
-	Title       string     `json:"title" db:"title"`
-	Description string     `json:"description" db:"description"`
-	Status      string     `json:"status" db:"status"`
-	Priority    string     `json:"priority" db:"priority"`
-	DueDate     *time.Time `json:"due_date" db:"due_date"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at" db:"updated_at"`
+	ID            string     `json:"id" db:"id"`
+	ProjectID     string     `json:"project_id" db:"project_id"`
+	UserID        string     `json:"user_id" db:"user_id"`
+	Title         string     `json:"title" db:"title"`
+	Description   string     `json:"description" db:"description"`
+	Status        string     `json:"status" db:"status"`
+	Priority      string     `json:"priority" db:"priority"`
+	DueDate       *time.Time `json:"due_date,omitempty" db:"due_date"`
+	AssignedTo    *string    `json:"assigned_to,omitempty" db:"assigned_to"`
+	AssigneeName  *string    `json:"assignee_name,omitempty" db:"assignee_name"`
+	AssigneeEmail *string    `json:"assignee_email,omitempty" db:"assignee_email"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty" db:"updated_at"`
 }
 
 //Request DTOs
@@ -63,6 +68,7 @@ type CreateTaskRequest struct {
 	Status      string  `json:"status"`
 	Priority    string  `json:"priority"`
 	DueDate     *string `json:"due_date"`
+	AssignedTo  *string `json:"assigned_to,omitempty"`
 }
 
 type UpdateTaskRequest struct {
@@ -71,6 +77,7 @@ type UpdateTaskRequest struct {
 	Status      string  `json:"status"`
 	Priority    string  `json:"priority"`
 	DueDate     *string `json:"due_date"`
+	AssignedTo  *string `json:"assigned_to,omitempty"`
 }
 
 type CreateProjectRequest struct {

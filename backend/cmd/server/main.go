@@ -66,7 +66,7 @@ func main() {
 	protected.HandleFunc("/projects/{id}", projectHandler.GetProject).Methods("GET")
 	protected.HandleFunc("/projects/{id}", projectHandler.UpdateProject).Methods("PUT", "OPTIONS")
 	protected.HandleFunc("/projects/{id}", projectHandler.DeleteProject).Methods("DELETE", "OPTIONS")
-	protected.HandleFunc("/projects/{id}/members", projectHandler.GetMembers).Methods("GET")
+	protected.HandleFunc("/projects/{id}/members", projectHandler.GetMembers).Methods("GET", "OPTIONS")
 	protected.HandleFunc("/projects/{id}/invite", projectHandler.InviteMember).Methods("POST", "OPTIONS")
 	protected.HandleFunc("/projects/{id}/members/{userId}", projectHandler.UpdateMemberRole).Methods("PUT", "OPTIONS")
 	protected.HandleFunc("/projects/{id}/members/{userId}", projectHandler.RemoveMember).Methods("DELETE", "OPTIONS")

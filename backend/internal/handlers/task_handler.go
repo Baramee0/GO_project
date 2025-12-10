@@ -23,7 +23,7 @@ func NewTaskHandler(taskRepo *repository.TaskRepository) *TaskHandler {
 	return &TaskHandler{taskRepo: taskRepo}
 }
 
-// GetTasks retrieves all tasks for the authenticated user
+// GetTasks retrieves all tasks for a project (team collaboration)
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -37,16 +37,25 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get tasks from repository
-	tasks, err := h.taskRepo.GetTasksByUserID(userID)
-	if err != nil {
-		log.Printf("Error getting tasks for user %s: %v", userID, err)
-		statusCode, errorMsg := handleDatabaseError(err)
-		if isDevelopment() {
-			respondWithError(w, statusCode, fmt.Sprintf("%s: %v", errorMsg, err))
-		} else {
-			respondWithError(w, statusCode, "Failed to get tasks")
+	// Get project_id from query parameter
+	projectID := r.URL.Query().Get("project_id")
+	if projectID == "" {
+		// Fallback to user-based tasks for backward compatibility
+		tasks, err := h.taskRepo.GetTasksByUserID(userID)
+		if err != nil {
+			log.Printf("Error getting tasks for user %s: %v", userID, err)
+			respondWithError(w, http.StatusInternalServerError, "Failed to get tasks")
+			return
 		}
+		respondWithJSON(w, http.StatusOK, tasks)
+		return
+	}
+
+	// Get tasks by project (for team collaboration)
+	tasks, err := h.taskRepo.GetTasksByProjectID(projectID)
+	if err != nil {
+		log.Printf("Error getting tasks for project %s: %v", projectID, err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to get tasks")
 		return
 	}
 
@@ -157,6 +166,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 		Status:      req.Status,
 		Priority:    req.Priority,
+		AssignedTo:  req.AssignedTo,
 		CreatedAt:   time.Now(),
 	}
 

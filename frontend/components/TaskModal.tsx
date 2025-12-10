@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskPriority } from '@/types';
+import Avatar from '@/components/ui/Avatar';
+import { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskPriority, ProjectMember } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { useProject } from '@/contexts/ProjectContext';
+import { projectApi } from '@/lib/projectApi';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -22,9 +24,26 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
     const [status, setStatus] = useState<TaskStatus>('todo');
     const [priority, setPriority] = useState<TaskPriority>('medium');
     const [dueDate, setDueDate] = useState('');
+    const [assignedTo, setAssignedTo] = useState<string>('');
+    const [members, setMembers] = useState<ProjectMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const toast = useToast();
     const { currentProject } = useProject();
+
+    // Load project members for assignee selector
+    useEffect(() => {
+        const fetchMembers = async () => {
+            if (isOpen && currentProject?.id) {
+                try {
+                    const response = await projectApi.getMembers(currentProject.id);
+                    setMembers(response.data);
+                } catch (error) {
+                    console.error('Failed to load members:', error);
+                }
+            }
+        };
+        fetchMembers();
+    }, [isOpen, currentProject]);
 
     useEffect(() => {
         if (task && mode === 'edit') {
@@ -33,6 +52,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             setStatus(task.status);
             setPriority(task.priority);
             setDueDate(task.due_date ? task.due_date.split('T')[0] : '');
+            setAssignedTo(task.assigned_to || '');
         } else {
             // Reset form for create mode
             setTitle('');
@@ -40,6 +60,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
             setStatus('todo');
             setPriority('medium');
             setDueDate('');
+            setAssignedTo('');
         }
     }, [task, mode, isOpen]);
 
@@ -75,6 +96,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
                     status,
                     priority,
                     due_date: dueDate || null,
+                    assigned_to: assignedTo || null,
                 };
                 console.log('[TaskModal] Creating task with data:', taskData);
                 await onSave(taskData);
@@ -85,6 +107,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
                     status,
                     priority,
                     due_date: dueDate || null,
+                    assigned_to: assignedTo || null,
                 };
                 console.log('[TaskModal] Updating task with data:', taskData);
                 await onSave(taskData);
@@ -154,6 +177,37 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, task, mo
                             <option value="high">High</option>
                         </select>
                     </div>
+                </div>
+
+                {/* Assignee Selector */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Assign To (Optional)
+                    </label>
+                    <select
+                        className="w-full px-4 py-3 glass-dark rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300"
+                        value={assignedTo}
+                        onChange={(e) => setAssignedTo(e.target.value)}
+                    >
+                        <option value="">Unassigned</option>
+                        {members
+                            .filter(m => ['po', 'pm', 'member'].includes(m.role))
+                            .map(member => (
+                                <option key={member.user_id} value={member.user_id}>
+                                    {member.user_name} ({member.role.toUpperCase()})
+                                </option>
+                            ))}
+                    </select>
+                    {assignedTo && members.find(m => m.user_id === assignedTo) && (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+                            <Avatar
+                                name={members.find(m => m.user_id === assignedTo)!.user_name}
+                                email={members.find(m => m.user_id === assignedTo)!.user_email}
+                                size="sm"
+                            />
+                            <span>Assigned to {members.find(m => m.user_id === assignedTo)!.user_name}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div>

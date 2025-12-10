@@ -55,7 +55,7 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add creator as PO (Product Owner)
-	if err := h.projectRepo.AddMember(project.ID, userID, "PO"); err != nil {
+	if err := h.projectRepo.AddMember(project.ID, userID, "po"); err != nil {
 		log.Printf("Error adding creator as PO: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Failed to add project owner")
 		return
@@ -136,7 +136,7 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	projectID := vars["id"]
 
 	// Check if user is PO or PM
-	if !h.hasProjectRole(userID, projectID, []string{"PO", "PM"}) {
+	if !h.hasProjectRole(userID, projectID, []string{"po", "pm"}) {
 		respondWithError(w, http.StatusForbidden, "Only PO or PM can update project")
 		return
 	}
@@ -175,7 +175,7 @@ func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	projectID := vars["id"]
 
 	// Only PO can delete project
-	if !h.hasProjectRole(userID, projectID, []string{"PO"}) {
+	if !h.hasProjectRole(userID, projectID, []string{"po"}) {
 		respondWithError(w, http.StatusForbidden, "Only PO can delete project")
 		return
 	}
@@ -200,8 +200,18 @@ func (h *ProjectHandler) InviteMember(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["id"]
 
-	// Check if user is PO or PM
-	if !h.hasProjectRole(userID, projectID, []string{"PO", "PM"}) {
+	// Check if user is system admin (admin bypass)
+	user, err := h.userRepo.GetUserByID(userID)
+	if err != nil {
+		log.Printf("Error getting user: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+
+	isAdmin := user.SystemRole == "admin"
+
+	// Check if user is PO or PM (skip for admin)
+	if !isAdmin && !h.hasProjectRole(userID, projectID, []string{"po", "pm"}) {
 		respondWithError(w, http.StatusForbidden, "Only PO or PM can invite members")
 		return
 	}
@@ -220,9 +230,9 @@ func (h *ProjectHandler) InviteMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate role
-	validRoles := map[string]bool{"PM": true, "Member": true, "Viewer": true}
+	validRoles := map[string]bool{"pm": true, "member": true, "viewer": true}
 	if !validRoles[req.Role] {
-		respondWithError(w, http.StatusBadRequest, "Invalid role. Must be PM, Member, or Viewer")
+		respondWithError(w, http.StatusBadRequest, "Invalid role. Must be pm, member, or viewer")
 		return
 	}
 
@@ -275,9 +285,9 @@ func (h *ProjectHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request
 	projectID := vars["id"]
 	memberID := vars["userId"]
 
-	// Only PO can update roles
-	if !h.hasProjectRole(userID, projectID, []string{"PO"}) {
-		respondWithError(w, http.StatusForbidden, "Only PO can update member roles")
+	// Only PO or PM can update roles
+	if !h.hasProjectRole(userID, projectID, []string{"po", "pm"}) {
+		respondWithError(w, http.StatusForbidden, "Only PO or PM can update member roles")
 		return
 	}
 
@@ -309,7 +319,7 @@ func (h *ProjectHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	memberID := vars["userId"]
 
 	// Only PO or PM can remove members
-	if !h.hasProjectRole(userID, projectID, []string{"PO", "PM"}) {
+	if !h.hasProjectRole(userID, projectID, []string{"po", "pm"}) {
 		respondWithError(w, http.StatusForbidden, "Only PO or PM can remove members")
 		return
 	}

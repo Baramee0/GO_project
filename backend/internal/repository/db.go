@@ -12,7 +12,8 @@ import (
 func ConnectDB() (*sql.DB, error) {
 
 	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("failed to load environment variables: %w", err)
+		// .env file not found - use environment variables from Docker/system
+		// This is expected in production Docker environments
 	}
 
 	dbURL := os.Getenv("DATABASE_URL")

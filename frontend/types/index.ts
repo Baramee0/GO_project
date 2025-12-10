@@ -10,7 +10,7 @@ export interface User {
 }
 
 // Project types
-export type ProjectRole = 'PO' | 'PM' | 'Member' | 'Viewer';
+export type ProjectRole = 'po' | 'pm' | 'member' | 'viewer';
 
 export interface Project {
     id: string;
@@ -24,6 +24,8 @@ export interface ProjectMember {
     id: string;
     project_id: string;
     user_id: string;
+    user_name: string;
+    user_email: string;
     role: ProjectRole;
     joined_at: string;
 }
@@ -41,6 +43,9 @@ export interface Task {
     status: TaskStatus;
     priority: TaskPriority;
     due_date: string | null;
+    assigned_to?: string | null;
+    assignee_name?: string | null;
+    assignee_email?: string | null;
     created_at: string;
     updated_at: string | null;
 }
@@ -75,6 +80,7 @@ export interface CreateTaskRequest {
     status: TaskStatus;
     priority: TaskPriority;
     due_date: string | null;
+    assigned_to?: string | null;
 }
 
 export interface UpdateTaskRequest {
@@ -83,6 +89,7 @@ export interface UpdateTaskRequest {
     status: TaskStatus;
     priority: TaskPriority;
     due_date: string | null;
+    assigned_to?: string | null;
 }
 
 // Project request types

@@ -30,7 +30,13 @@ export default function DashboardPage() {
     const fetchTasks = async () => {
         try {
             setIsLoading(true);
-            const response = await api.get<Task[]>('/tasks');
+            if (!currentProject?.id) {
+                setTasks([]);
+                setIsLoading(false);
+                return;
+            }
+            // Fetch tasks for current project (all team members can see)
+            const response = await api.get<Task[]>(`/tasks?project_id=${currentProject.id}`);
             setTasks(response.data);
             setError('');
         } catch (err: any) {

@@ -31,8 +31,8 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 
 	// Insert into database
 	query := `
-		INSERT INTO tasks (id, project_id, user_id, title, description, status, priority, due_date, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO tasks (id, project_id, user_id, title, description, status, priority, due_date, assigned_to, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	_, err := r.db.Exec(
@@ -45,6 +45,7 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 		task.Status,
 		task.Priority,
 		task.DueDate,
+		task.AssignedTo,
 		task.CreatedAt,
 		task.UpdatedAt,
 	)
@@ -116,6 +117,77 @@ func (r *TaskRepository) GetTasksByUserID(userID string) ([]*models.Task, error)
 	return tasks, nil
 }
 
+// GetTasksByProjectID retrieves all tasks for a project with assignee info (for team collaboration)
+func (r *TaskRepository) GetTasksByProjectID(projectID string) ([]*models.Task, error) {
+	query := `
+		SELECT t.id, t.project_id, t.user_id, t.title, t.description, t.status, t.priority, t.due_date, t.assigned_to, t.created_at, t.updated_at,
+		       u.name as assignee_name, u.email as assignee_email
+		FROM tasks t
+		LEFT JOIN users u ON t.assigned_to = u.id
+		WHERE t.project_id = $1
+		ORDER BY t.created_at DESC
+	`
+
+	rows, err := r.db.Query(query, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []*models.Task
+	for rows.Next() {
+		task := &models.Task{}
+		var updatedAt sql.NullTime
+		var dueDate sql.NullTime
+		var projectIDVal sql.NullString
+		var assignedTo sql.NullString
+		var assigneeName sql.NullString
+		var assigneeEmail sql.NullString
+
+		err := rows.Scan(
+			&task.ID,
+			&projectIDVal,
+			&task.UserID,
+			&task.Title,
+			&task.Description,
+			&task.Status,
+			&task.Priority,
+			&dueDate,
+			&assignedTo,
+			&task.CreatedAt,
+			&updatedAt,
+			&assigneeName,
+			&assigneeEmail,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+
+		if projectIDVal.Valid {
+			task.ProjectID = projectIDVal.String
+		}
+		if updatedAt.Valid {
+			task.UpdatedAt = &updatedAt.Time
+		}
+		if dueDate.Valid {
+			task.DueDate = &dueDate.Time
+		}
+		if assignedTo.Valid {
+			task.AssignedTo = &assignedTo.String
+		}
+		if assigneeName.Valid {
+			task.AssigneeName = &assigneeName.String
+		}
+		if assigneeEmail.Valid {
+			task.AssigneeEmail = &assigneeEmail.String
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+}
+
 // GetTaskByID retrieves a task by ID
 func (r *TaskRepository) GetTaskByID(id string) (*models.Task, error) {
 	task := &models.Task{}
@@ -170,8 +242,8 @@ func (r *TaskRepository) UpdateTask(task *models.Task) error {
 
 	query := `
 		UPDATE tasks
-		SET title = $1, description = $2, status = $3, priority = $4, due_date = $5, updated_at = $6
-		WHERE id = $7 AND user_id = $8
+		SET title = $1, description = $2, status = $3, priority = $4, due_date = $5, assigned_to = $6, updated_at = $7
+		WHERE id = $8 AND user_id = $9
 	`
 
 	result, err := r.db.Exec(
@@ -181,6 +253,7 @@ func (r *TaskRepository) UpdateTask(task *models.Task) error {
 		task.Status,
 		task.Priority,
 		task.DueDate,
+		task.AssignedTo,
 		task.UpdatedAt,
 		task.ID,
 		task.UserID,
